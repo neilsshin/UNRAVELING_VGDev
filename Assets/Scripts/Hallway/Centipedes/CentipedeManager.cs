@@ -7,8 +7,9 @@ public class CentipedeManager : MonoBehaviour
   [SerializeField]
   private Centipede _centipedePrefab;
 
+  [Tooltip("Box covering the room. Centipedes spawn on surfaces inside it.")]
   [SerializeField]
-  private Transform _spawnPoint;
+  private BoxCollider _spawnBounds;
 
   [SerializeField]
   private Transform _playerTarget;
@@ -20,8 +21,13 @@ public class CentipedeManager : MonoBehaviour
   [SerializeField]
   private float _spawnInterval = 3f;
 
+  [Tooltip("Don't spawn closer than this to the player.")]
   [SerializeField]
-  private float _attachSearchDistance = 5f;
+  private float _minDistanceFromPlayer = 3f;
+
+  [Tooltip("How many random spots to try per spawn before giving up.")]
+  [SerializeField]
+  private int _spawnAttempts = 10;
 
   [Header("Pool")]
   [SerializeField]
@@ -29,16 +35,6 @@ public class CentipedeManager : MonoBehaviour
 
   [SerializeField]
   private int _maxPoolSize = 32;
-
-  private static readonly Vector3[] _searchDirections =
-  {
-    Vector3.down,
-    Vector3.up,
-    Vector3.left,
-    Vector3.right,
-    Vector3.forward,
-    Vector3.back,
-  };
 
   private ObjectPool<Centipede> _pool;
   private float _spawnTimer;
@@ -76,12 +72,12 @@ public class CentipedeManager : MonoBehaviour
 
   private void SpawnCentipede()
   {
-    if (_centipedePrefab == null || _spawnPoint == null || _playerTarget == null)
+    if (_centipedePrefab == null || _spawnBounds == null || _playerTarget == null)
       return;
 
-    if (!FindNearestSurface(_spawnPoint.position, out RaycastHit hit))
+    if (!FindRandomSurface(out RaycastHit hit))
     {
-      Debug.LogWarning($"{name}: no surface near the spawn point to attach a centipede to");
+      Debug.LogWarning($"{name}: couldn't find a surface inside the spawn bounds");
       return;
     }
 
@@ -91,25 +87,33 @@ public class CentipedeManager : MonoBehaviour
     c.Init(_playerTarget, hit.point, hit.normal, toPlayer);
   }
 
-  private bool FindNearestSurface(Vector3 origin, out RaycastHit best)
+  private bool FindRandomSurface(out RaycastHit result)
   {
-    best = default;
-    float bestDistance = float.MaxValue;
-    bool found = false;
+    Bounds b = _spawnBounds.bounds;
+    float maxDistance = b.size.magnitude;
 
-    foreach (Vector3 dir in _searchDirections)
+    for (int i = 0; i < _spawnAttempts; i++)
     {
+      Vector3 origin = new Vector3(
+        Random.Range(b.min.x, b.max.x),
+        Random.Range(b.min.y, b.max.y),
+        Random.Range(b.min.z, b.max.z)
+      );
+
+      Vector3 dir = Random.onUnitSphere;
+
       if (
-        Physics.Raycast(origin, dir, out RaycastHit hit, _attachSearchDistance, _surfaceMask)
-        && hit.distance < bestDistance
+        Physics.Raycast(origin, dir, out RaycastHit hit, maxDistance, _surfaceMask, QueryTriggerInteraction.Ignore)
+        && b.Contains(hit.point)
+        && Vector3.Distance(hit.point, _playerTarget.position) >= _minDistanceFromPlayer
       )
       {
-        best = hit;
-        bestDistance = hit.distance;
-        found = true;
+        result = hit;
+        return true;
       }
     }
 
-    return found;
+    result = default;
+    return false;
   }
 }

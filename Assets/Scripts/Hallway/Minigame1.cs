@@ -1,25 +1,36 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using System.Collections;
 
 public class Minigame1 : MonoBehaviour {
-    [SerializeField] float duration = 30f; //duration of the mini game
+    [SerializeField] float duration = 30f;
     public float speed = 5f;
     public float dashDistance = 20f;
-    public float delay = 1f; //delay between dashes
-    public float warningDelay = 1f; //delay between teleport and attack
-    public float overshoot = 6f; //distance past player
+    public float delay = 1f; 
+    public float warningDelay = 1f;
+    public float overshoot = 6f;
     [SerializeField] Transform center;
     [SerializeField] float spawnRadius = 8f;
     [SerializeField] Transform player;
+
+    [Header("Finish")]
+    [SerializeField] int dashesToFinish = 8;              
+    [SerializeField] string returnScene = "HallwayP1";  
+    [SerializeField] float returnDelay = 1f;             
+
     private Vector3 startPos;
     private Vector3 endPos;
     private Quaternion startRot;
     private float timer = 0f;
     private bool started = false;
+    private bool finished = false;
     private bool visible = true;
+    private int dashCount = 0;
     private Renderer[] renderers;
     protected bool hasHit = false;
+
+    public int DashCount => dashCount;
 
 
     void Start() {
@@ -37,13 +48,18 @@ public class Minigame1 : MonoBehaviour {
     public void StartMinigame() {
         StopAllCoroutines();
         started = true;
+        finished = false;
         timer = 0f;
+        dashCount = 0;
         transform.position = startPos;
         transform.rotation = startRot;
         StartCoroutine(DashLoop());
     }
 
     void Update() {
+        if (finished) {
+            return;   //don't restart once the minigame is over
+        }
 
         if (!started) {
             StartMinigame();
@@ -51,13 +67,8 @@ public class Minigame1 : MonoBehaviour {
         }
 
         timer += Time.deltaTime;
-        if (timer >= duration) {
-            started = false;
-            StopAllCoroutines();
-            transform.position = startPos;
-            transform.rotation = startRot;
-            SetVisible(false);
-            Debug.Log("minigame over");
+        if (duration > 0f && timer >= duration) {
+            FinishMinigame();
         }
     }
 
@@ -67,8 +78,35 @@ public class Minigame1 : MonoBehaviour {
             yield return new WaitForSeconds(warningDelay);
             yield return MoveTo(GetDashTarget());
             SetVisible(false);
+
+            dashCount++;
+            if (dashesToFinish > 0 && dashCount >= dashesToFinish) {
+                FinishMinigame();
+                yield break;
+            }
+
             yield return new WaitForSeconds(delay);
         }
+    }
+
+    //ends the minigame and returns to the hallway
+    void FinishMinigame() {
+        if (finished) {
+            return;
+        }
+        finished = true;
+        started = false;
+        StopAllCoroutines();
+        transform.position = startPos;
+        transform.rotation = startRot;
+        SetVisible(false);
+        Debug.Log($"minigame over after {dashCount} dashes");
+        StartCoroutine(ReturnToHallway());
+    }
+
+    IEnumerator ReturnToHallway() {
+        yield return new WaitForSeconds(returnDelay);
+        SceneManager.LoadScene(returnScene);
     }
 
     protected virtual IEnumerator MoveTo(Vector3 target) {

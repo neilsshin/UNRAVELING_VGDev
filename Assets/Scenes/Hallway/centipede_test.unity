@@ -354,9 +354,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DuckController
   _camera: {fileID: 220260705}
+  _duckHeight: 0.6
   _duckPitch: 50
   _duckedSpeedMultiplier: 0.5
   _duckDownDuration: 0.12
+  _duckHoldDuration: 0.25
   _duckUpDuration: 0.2
   _recoveryDuration: 0.5
 --- !u!114 &650540690
@@ -1076,13 +1078,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CentipedeManager
   _centipedePrefab: {fileID: 880639976}
-  _spawnPoint: {fileID: 1108938351}
+  _spawnBounds: {fileID: 0}
   _playerTarget: {fileID: 650540697}
   _surfaceMask:
     serializedVersion: 2
     m_Bits: 4294967295
   _spawnInterval: 3
-  _attachSearchDistance: 5
+  _minDistanceFromPlayer: 3
+  _spawnAttempts: 10
   _defaultCapacity: 8
   _maxPoolSize: 32
 --- !u!136 &2090457761
@@ -1316,6 +1319,10 @@ PrefabInstance:
     - target: {fileID: 2440129639761597781, guid: 17144ce71b96541c79a02ebc76a151d6, type: 3}
       propertyPath: m_Enabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3220009054341219236, guid: 17144ce71b96541c79a02ebc76a151d6, type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4778976799447497223, guid: 17144ce71b96541c79a02ebc76a151d6, type: 3}
       propertyPath: m_Enabled
